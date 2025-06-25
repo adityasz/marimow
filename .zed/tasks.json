@@ -1,0 +1,10 @@
+[
+  {
+    "label": "Build",
+    "command": "cargo build --release"
+  },
+  {
+    "label": "Test",
+    "command": "cargo test"
+  }
+]
