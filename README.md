@@ -4,7 +4,7 @@
 
 > [!NOTE]
 > Only works on Linux; signal handling on macOS is different and I don't have a
-> Mac. You can open a pull request with a fix; see
+> Mac. You can open a pull request with a fix: See
 > [`src/lib.rs:run_marimo`](https://github.com/adityasz/marimow/tree/master/src/lib.rs).
 
 A marimo Wrapper.
@@ -82,6 +82,10 @@ $ cargo install --git https://github.com/adityasz/marimow
   # %%
 
   x = np.array([1, 2, 3])
+
+  # %% everything after the cell separator is ignored
+
+  print(x)
   ```
 
   gets converted to
@@ -95,6 +99,11 @@ $ cargo install --git https://github.com/adityasz/marimow
   @app.cell
   def _():
       x = np.array([1, 2, 3])
+
+
+  @app.cell
+  def _():
+      print(x)
 
 
   if __name__ == "__main__":

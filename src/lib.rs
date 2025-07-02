@@ -98,7 +98,7 @@ fn convert_file(source_path: &Path, target_path: &Path, separator: &str) -> Resu
                 });
             });
     };
-    let parts: Vec<&str> = Regex::new(&format!(r"(?m)^{}", regex::escape(separator)))
+    let parts: Vec<&str> = Regex::new(&format!(r"(?m)^{}.*$", regex::escape(separator)))
         .unwrap()
         .split(&content)
         .collect();

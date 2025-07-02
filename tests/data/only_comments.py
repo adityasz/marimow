@@ -3,6 +3,6 @@
 # %%
 # yet another comment
    # indented
-# %%
-    # %%
+# %% ignore stuff after the cell separator
+    # %% this is indented, so ignored
     # more comments!
