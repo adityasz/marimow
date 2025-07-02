@@ -47,13 +47,19 @@ fn cache_dir() -> Result<PathBuf, ErrorKind> {
     if let Some(config_path) =
         dirs::config_dir().and_then(|p| Some(p.join("marimow").join("config.toml")))
     {
-        info!("Found config in {}", config_path.display());
-        toml::from_str(
-            &fs::read_to_string(&config_path)
-                .map_err(|e| ErrorKind::Io(config_path.to_string_lossy().into(), e))?,
-        )
-        .map_err(|e| ErrorKind::BadConfig(config_path.to_string_lossy().into(), e))
-        .and_then(|config: Config| Ok(PathBuf::from(config.cache_dir)))
+        match assert_file_exists(&config_path) {
+            Ok(()) => {
+                info!("Found config in {}", config_path.display());
+                toml::from_str(
+                    &fs::read_to_string(&config_path)
+                        .map_err(|e| ErrorKind::Io(config_path.to_string_lossy().into(), e))?
+                )
+                .map_err(|e| ErrorKind::BadConfig(config_path.to_string_lossy().into(), e))
+                .and_then(|config: Config| Ok(PathBuf::from(config.cache_dir)))
+            }
+            Err(ErrorKind::FileNotFound(_)) => Ok(default_path),
+            Err(e) => Err(e),
+        }
     } else {
         Ok(default_path)
     }
