@@ -52,7 +52,7 @@ fn cache_dir() -> Result<PathBuf, ErrorKind> {
                 info!("Found config in {}", config_path.display());
                 toml::from_str(
                     &fs::read_to_string(&config_path)
-                        .map_err(|e| ErrorKind::Io(config_path.to_string_lossy().into(), e))?
+                        .map_err(|e| ErrorKind::Io(config_path.to_string_lossy().into(), e))?,
                 )
                 .map_err(|e| ErrorKind::BadConfig(config_path.to_string_lossy().into(), e))
                 .and_then(|config: Config| Ok(PathBuf::from(config.cache_dir)))
@@ -74,8 +74,10 @@ fn convert_file(source_path: &Path, target_path: &Path) -> Result<(), ErrorKind>
         Some(section)
             .map(|s| s.trim())
             .filter(|s| {
-                s.lines()
-                    .any(|line| !line.trim().is_empty() && !line.starts_with('#'))
+                s.lines().any(|line| {
+                    let trimmed_line = line.trim();
+                    !trimmed_line.is_empty() && !trimmed_line.starts_with('#')
+                })
             })
             .inspect(|_| {
                 contains_function.map(|f| *f = true);
