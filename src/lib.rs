@@ -155,6 +155,15 @@ fn watch_and_update_file(
     // when `:w` is executed in vim, causing everything to break
     watcher.watch(source_path.parent().unwrap(), RecursiveMode::NonRecursive)?;
 
+    let kill_and_wait = |child: &mut Child| {
+        if let Err(_) = child.kill() {
+            eprintln!("could not kill the marimo process");
+        };
+        if let Err(_) = child.wait() {
+            eprintln!("could not wait for marimo process to exit");
+        };
+    };
+
     loop {
         if let Some(status) = marimo_child
             .try_wait()
@@ -184,13 +193,8 @@ fn watch_and_update_file(
                             }
                             Err(RecvTimeoutError::Timeout) => break,
                             Ok(Err(e)) => return Err(ErrorKind::Watch(e)),
-                            Err(RecvTimeoutError::Disconnected) => {
-                                marimo_child
-                                    .kill()
-                                    .expect("could not kill the marimo process");
-                                marimo_child
-                                    .wait()
-                                    .expect("could not wait for marimo process to exit");
+                            Err(_) => {
+                                kill_and_wait(marimo_child);
                                 panic!("Watcher disconnected")
                             }
                         }
@@ -201,25 +205,15 @@ fn watch_and_update_file(
                     );
                     if let Err(e) = convert_file(source_path, target_path) {
                         error!("Error converting file");
-                        marimo_child
-                            .kill()
-                            .expect("could not kill the marimo process");
-                        marimo_child
-                            .wait()
-                            .expect("could not wait for marimo process to exit");
+                        kill_and_wait(marimo_child);
                         return Err(e);
                     }
                 }
             }
-            Ok(Err(e)) => return Err(ErrorKind::Watch(e)),
             Err(RecvTimeoutError::Timeout) => {}
+            Ok(Err(e)) => return Err(ErrorKind::Watch(e)),
             Err(RecvTimeoutError::Disconnected) => {
-                marimo_child
-                    .kill()
-                    .expect("could not kill the marimo process");
-                marimo_child
-                    .wait()
-                    .expect("could not wait for marimo process to exit");
+                kill_and_wait(marimo_child);
                 panic!("Watcher disconnected")
             }
         }
@@ -228,7 +222,7 @@ fn watch_and_update_file(
     Ok(())
 }
 
-fn make_parent(path: &Path) -> Result<(), ErrorKind> {
+fn make_parent_directory(path: &Path) -> Result<(), ErrorKind> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| ErrorKind::Io(parent.to_string_lossy().into(), e))?;
@@ -238,7 +232,7 @@ fn make_parent(path: &Path) -> Result<(), ErrorKind> {
 
 pub fn run_convert_command(input: &Path, output: &Path) -> Result<(), ErrorKind> {
     assert_file_exists(&input)?;
-    make_parent(output)?;
+    make_parent_directory(output)?;
     convert_file(&input, &output)?;
     Ok(())
 }
@@ -278,7 +272,7 @@ pub fn run_edit_command(mut args: Vec<OsString>) -> Result<(), ErrorKind> {
     }
     info!("Using {} as the cached file", cached_path.display());
 
-    make_parent(&cached_path)?;
+    make_parent_directory(&cached_path)?;
     convert_file(&input_path, &cached_path)?;
 
     ctrlc::set_handler(|| {}).expect("Error setting Ctrl-C handler");
