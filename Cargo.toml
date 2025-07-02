@@ -1,7 +1,7 @@
 [package]
 name = "marimow"
 authors = ["Aditya Singh <1adityasingh@proton.me>"]
-description = "TODO"
+description = "A wrapper around marimo to convert Python files to marimo's format and live reload."
 version = "0.1.0"
 edition = "2024"
 
