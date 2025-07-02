@@ -10,7 +10,7 @@
 - Convert a python file with cells separated by `# %%` into [marimo](marimo)'s format
 
   ```console
-  marimow convert notebook.py output.py
+  $ marimow convert notebook.py output.py
   ```
 
   marimo handles data dependencies automatically when the output is opened in
