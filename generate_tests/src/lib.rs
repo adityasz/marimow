@@ -27,7 +27,7 @@ pub fn generate_file_tests(input: TokenStream) -> TokenStream {
             fn #test_name_ident() {
                 let input_path = ::std::path::PathBuf::from(#dir_path).join(#filename);
                 let temp_file = ::tempfile::NamedTempFile::new().unwrap();
-                ::marimow::run_convert_command(&input_path, &temp_file.path()).unwrap();
+                ::marimow::run_convert_command(&input_path, &temp_file.path(), &::marimow::Config::default()).unwrap();
                 let output_path = {
                     let stem = input_path.file_stem().unwrap().to_string_lossy();
                     input_path.with_file_name(format!("{}_output.py", stem))

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(version, about)]
-struct Args {
+struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
@@ -29,18 +29,7 @@ enum Commands {
         input: PathBuf,
         /// Path to the output marimo file.
         output: PathBuf,
-    },
-    /// Manage marimow's cache
-    Cache {
-        #[command(subcommand)]
-        command: CacheCommand
     }
-}
-
-#[derive(Subcommand)]
-enum CacheCommand {
-    /// Remove the cache directory
-    Clean
 }
 
 struct ErrorReporter {
@@ -68,7 +57,7 @@ impl Default for ErrorReporter {
 }
 
 impl ErrorReporter {
-    fn report(&self, error: ErrorKind) {
+    fn report(&self, error: &ErrorKind) -> ! {
         let emph = self.emph_style;
         let message = match error {
             ErrorKind::FileNotFound(path) => format!("file {0}'{path}'{0:#} does not exist", emph),
@@ -81,6 +70,9 @@ impl ErrorReporter {
                     "marimo edit command failed with status {0:#}{status}{0:#}",
                     emph
                 )
+            }
+            ErrorKind::ConfigFileNotFile(path) => {
+                format!("config file {0}'{path}'{0:#} is not a file", emph)
             }
             ErrorKind::BadConfig(path, e) => {
                 format!(
@@ -95,27 +87,27 @@ impl ErrorReporter {
                 )
             }
         };
-        eprintln!("{0}error:{0:#} {message}", self.prefix_style)
+        eprintln!("{0}error:{0:#} {message}", self.prefix_style);
+        std::process::exit(1);
     }
 }
 
 fn main() {
-    let args = Args::parse();
+    let args = Cli::parse();
+    let error_reporter = ErrorReporter::default();
     env_logger::init();
 
+    let config = match marimow::load_config() {
+        Ok(config) => config,
+        Err(e) => error_reporter.report(&e),
+    };
+
     let result = match args.command {
-        Commands::Edit { args: marimo_args } => marimow::run_edit_command(marimo_args),
+        Commands::Edit { args: marimo_args } => marimow::run_edit_command(marimo_args, &config),
         Commands::Convert { input, output } => {
-            marimow::run_convert_command(&input, &output).map_err(|e| e.into())
-        },
-        Commands::Cache { command: CacheCommand::Clean } => {
-            marimow::clear_cache().map_err(|e| e.into())
+            marimow::run_convert_command(&input, &output, &config)
         }
     };
 
-    if let Err(e) = result {
-        let reporter = ErrorReporter::default();
-        reporter.report(e);
-        std::process::exit(1);
-    }
+    result.inspect_err(|e| error_reporter.report(e)).ok();
 }

@@ -1,4 +1,3 @@
-use clap::builder::styling::{AnsiColor, Style};
 use ctrlc;
 use dirs;
 use log::{self, debug, error, info, log_enabled};
@@ -8,7 +7,7 @@ use regex::Regex;
 use serde::Deserialize;
 use std::ffi::OsString;
 use std::fs;
-use std::io::{self, IsTerminal};
+use std::io;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
@@ -21,6 +20,7 @@ const DEBOUNCE_DURATION: Duration = Duration::from_millis(50);
 
 #[derive(Debug)]
 pub enum ErrorKind {
+    ConfigFileNotFile(Box<str>),
     BadConfig(Box<str>, toml::de::Error),
     FileArgMissing,
     FileNotFound(Box<str>),
@@ -38,34 +38,41 @@ impl From<notify::Error> for ErrorKind {
 }
 
 #[derive(Deserialize)]
-struct Config {
-    cache_dir: String,
+#[serde(default)]
+pub struct Config {
+    cache_dir: PathBuf,
+    cell_separator: String,
 }
 
-fn cache_dir() -> Result<PathBuf, ErrorKind> {
-    let default_path = PathBuf::from(".marimow_cache");
-    if let Some(config_path) =
-        dirs::config_dir().and_then(|p| Some(p.join("marimow").join("config.toml")))
-    {
-        match assert_file_exists(&config_path) {
-            Ok(()) => {
-                info!("Found config in {}", config_path.display());
-                toml::from_str(
-                    &fs::read_to_string(&config_path)
-                        .map_err(|e| ErrorKind::Io(config_path.to_string_lossy().into(), e))?,
-                )
-                .map_err(|e| ErrorKind::BadConfig(config_path.to_string_lossy().into(), e))
-                .and_then(|config: Config| Ok(PathBuf::from(config.cache_dir)))
-            }
-            Err(ErrorKind::FileNotFound(_)) => Ok(default_path),
-            Err(e) => Err(e),
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            cache_dir: PathBuf::from(".marimow_cache"),
+            cell_separator: "# %%".to_string(),
         }
-    } else {
-        Ok(default_path)
     }
 }
 
-fn convert_file(source_path: &Path, target_path: &Path) -> Result<(), ErrorKind> {
+pub fn load_config() -> Result<Config, ErrorKind> {
+    let config_path = dirs::config_dir().map(|p| p.join("marimow").join("config.toml"));
+
+    match config_path {
+        Some(path) if path.is_file() => {
+            info!("Loading config from {}", path.display());
+            toml::from_str(
+                &fs::read_to_string(&path)
+                    .map_err(|e| ErrorKind::Io(path.to_string_lossy().into(), e))?,
+            )
+            .map_err(|e| ErrorKind::BadConfig(path.to_string_lossy().into(), e))
+        }
+        Some(path) if path.exists() && !path.is_file() => {
+            Err(ErrorKind::ConfigFileNotFile(path.to_string_lossy().into()))
+        }
+        _ => Ok(Config::default()),
+    }
+}
+
+fn convert_file(source_path: &Path, target_path: &Path, separator: &str) -> Result<(), ErrorKind> {
     let content = fs::read_to_string(source_path)
         .map_err(|e| ErrorKind::Io(source_path.to_string_lossy().into(), e))?;
 
@@ -91,7 +98,10 @@ fn convert_file(source_path: &Path, target_path: &Path) -> Result<(), ErrorKind>
                 });
             });
     };
-    let parts: Vec<&str> = Regex::new(r"(?m)^# %%").unwrap().split(&content).collect();
+    let parts: Vec<&str> = Regex::new(&format!(r"(?m)^{}", regex::escape(separator)))
+        .unwrap()
+        .split(&content)
+        .collect();
     parts
         .get(0)
         .map(|section| push_section("\nwith app.setup:\n", section, None));
@@ -147,6 +157,7 @@ fn watch_and_update_file(
     source_path: &Path,
     target_path: &Path,
     marimo_child: &mut Child,
+    cell_separator: &str,
 ) -> Result<(), ErrorKind> {
     info!("Watching source path: {}", source_path.display());
     let (tx, rx) = mpsc::channel();
@@ -203,7 +214,7 @@ fn watch_and_update_file(
                         "source file '{}' changed, converting...",
                         source_path.display()
                     );
-                    if let Err(e) = convert_file(source_path, target_path) {
+                    if let Err(e) = convert_file(source_path, target_path, cell_separator) {
                         error!("Error converting file");
                         kill_and_wait(marimo_child);
                         return Err(e);
@@ -230,15 +241,17 @@ fn make_parent_directory(path: &Path) -> Result<(), ErrorKind> {
     Ok(())
 }
 
-pub fn run_convert_command(input: &Path, output: &Path) -> Result<(), ErrorKind> {
+pub fn run_convert_command(input: &Path, output: &Path, config: &Config) -> Result<(), ErrorKind> {
     assert_file_exists(&input)?;
     make_parent_directory(output)?;
-    convert_file(&input, &output)?;
+    convert_file(&input, &output, &config.cell_separator)?;
     Ok(())
 }
 
-pub fn run_edit_command(mut args: Vec<OsString>) -> Result<(), ErrorKind> {
-    let cache_dir_rel = cache_dir()?;
+pub fn run_edit_command(mut args: Vec<OsString>, config: &Config) -> Result<(), ErrorKind> {
+    let cache_dir_rel = &config.cache_dir;
+    fs::create_dir_all(&config.cache_dir)
+        .map_err(|e| ErrorKind::Io(cache_dir_rel.to_string_lossy().into(), e))?;
     let cache_dir = cache_dir_rel
         .canonicalize()
         .map_err(|e| ErrorKind::Io(cache_dir_rel.to_string_lossy().into(), e))?;
@@ -273,32 +286,21 @@ pub fn run_edit_command(mut args: Vec<OsString>) -> Result<(), ErrorKind> {
     info!("Using {} as the cached file", cached_path.display());
 
     make_parent_directory(&cached_path)?;
-    convert_file(&input_path, &cached_path)?;
+    convert_file(&input_path, &cached_path, &config.cell_separator)?;
 
     ctrlc::set_handler(|| {}).expect("Error setting Ctrl-C handler");
 
     let mut marimo_child = run_marimo(args)?;
-    watch_and_update_file(&input_path, &cached_path, &mut marimo_child)?;
+    watch_and_update_file(
+        &input_path,
+        &cached_path,
+        &mut marimo_child,
+        &config.cell_separator,
+    )?;
 
     marimo_child
         .wait()
         .map_err(|err| ErrorKind::Io("marimo".into(), err))?;
     Ok(std::fs::remove_file(&cached_path)
         .map_err(|e| ErrorKind::Io(cached_path.to_string_lossy().into(), e))?)
-}
-
-pub fn clear_cache() -> Result<(), ErrorKind> {
-    let style = if std::io::stdout().is_terminal() {
-        Style::new().fg_color(Some(AnsiColor::Cyan.into()))
-    } else {
-        Style::new()
-    };
-    let cache_dir = cache_dir()?;
-    println!("Removing cache at {style}{}{style:#}", cache_dir.display());
-    fs::remove_dir_all(&cache_dir)
-        .or_else(|e| match e.kind() {
-            io::ErrorKind::NotFound => Ok(()),
-            _ => Err(e),
-        })
-        .map_err(|e| ErrorKind::Io(cache_dir.to_string_lossy().into(), e))
 }

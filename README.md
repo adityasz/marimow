@@ -1,4 +1,4 @@
-# marimow
+# marimoW
 
 ![CI](https://github.com/adityasz/marimow/actions/workflows/ci.yml/badge.svg)
 
@@ -6,6 +6,8 @@
 > Only works on Linux; signal handling on macOS is different and I don't have a
 > Mac. You can open a pull request with a fix; see
 > [`src/lib.rs:run_marimo`](https://github.com/adityasz/marimow/tree/master/src/lib.rs).
+
+A marimo Wrapper.
 
 - Convert a python file with cells separated by `# %%` into [marimo](marimo)'s format
 
@@ -18,12 +20,12 @@
   so it is not necessary to add them to function signatures.
 
 - Edit a python file with cells separated by `# %%` in your favourite editor
-  (vim) with your favourite type checker, and marimow will convert it to
+  (vim) with your favourite type checker, and marimoW will convert it to
   [marimo](https://github.com/marimo-team/marimo)'s format on every write, so
   that marimo can live reload it in the browser frontend.
 
   `marimow edit [OPTIONS] path/to/notebook.py` is just `marimo edit --watch
-  [OPTIONS] .marimow_cache/path/to/notebook.py`; all that marimow does is sync
+  [OPTIONS] .marimow_cache/path/to/notebook.py`; all that marimoW does is sync
   `.marimow_cache/path/to/notebook.py` with `path/to/notebook.py` for marimo to
   watch.
 
@@ -99,13 +101,21 @@ $ cargo install --git https://github.com/adityasz/marimow
       app.run()
   ```
 
-## Config file
+## Config
 
-You can change the cache directory by adding `cache_dir = <PATH>` to the config
-file in `${XDG_CONFIG_HOME:-$HOME/.config/marimow}/marimow/config.toml`.
+marimoW loads its config from
+`${XDG_CONFIG_HOME:-$HOME/.config/marimow}/marimow/config.toml`.
+
+The default config is
+
+```toml
+cache_dir = ".marimow_cache"
+cell_separator = "# %%"
+```
 
 > [!NOTE]
 > Note that if the cache directory is set to
 > `${XDG_CACHE_HOME:-$HOME/.cache}/marimow`, marimo does not autorun cells.
-> (This may be a bug in marimo.) Thus, the default is `.marimow_cache` (in the
-> directory where marimow is executed).
+> (This may be a bug in marimo.) Thus, the default is `.marimow_cache` in the
+> directory where marimoW is executed (which unfortunately means one more
+> `.gitignore` entry).

@@ -14,7 +14,7 @@ log = "0.4.27"
 nix = "0.30.1"
 notify = "8.0.0"
 regex = "1.11.1"
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { version = "1.0.219", features = ["default", "derive"] }
 toml = "0.8.23"
 
 [dev-dependencies]
