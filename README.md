@@ -34,7 +34,7 @@ def _():
     print(x)
 ```
 
-- Convert Python scripts having cell separators (e.g., `# %%`; see
+- Convert Python scripts having cell delimiters (e.g., `# %%`; see
   [config](#config)) into [marimo's format](https://docs.marimo.io/guides/editor_features/watching/#marimos-file-format):
 
   ```console
@@ -67,8 +67,7 @@ $ cargo install --git https://github.com/adityasz/marimow
 
 ## Format
 
-- The cell separator (`# %%` by default, consistent with PyCharm and vscode) can
-  be configured in the [config file](#config).
+- The cell delimiter can be configured in the [config file](#config).
 
 - The first cell is the [setup cell](https://docs.marimo.io/guides/reusing_functions/?h=setup#1-create-a-setup-cell):
 
@@ -111,7 +110,7 @@ $ cargo install --git https://github.com/adityasz/marimow
 
   x = np.array([1, 2, 3])  # comments are preserved
 
-  # %% everything after the cell separator is ignored
+  # %% everything after the cell delimiter is ignored
 
   print(x)
   ```
@@ -158,7 +157,7 @@ The default config is
 
 ```toml
 cache_dir = ".marimow_cache"
-cell_separator = "# %%"
+cell_delimiter = "# %%"
 ```
 
 > [!NOTE]

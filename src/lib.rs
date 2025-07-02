@@ -41,14 +41,14 @@ impl From<notify::Error> for ErrorKind {
 #[serde(default)]
 pub struct Config {
     cache_dir: PathBuf,
-    cell_separator: String,
+    cell_delimiter: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             cache_dir: PathBuf::from(".marimow_cache"),
-            cell_separator: "# %%".to_string(),
+            cell_delimiter: "# %%".to_string(),
         }
     }
 }
@@ -72,7 +72,7 @@ pub fn load_config() -> Result<Config, ErrorKind> {
     }
 }
 
-fn convert_file(source_path: &Path, target_path: &Path, separator: &str) -> Result<(), ErrorKind> {
+fn convert_file(source_path: &Path, target_path: &Path, delimiter: &str) -> Result<(), ErrorKind> {
     let content = fs::read_to_string(source_path)
         .map_err(|e| ErrorKind::Io(source_path.to_string_lossy().into(), e))?;
 
@@ -98,7 +98,7 @@ fn convert_file(source_path: &Path, target_path: &Path, separator: &str) -> Resu
                 });
             });
     };
-    let parts: Vec<&str> = Regex::new(&format!(r"(?m)^{}.*$", regex::escape(separator)))
+    let parts: Vec<&str> = Regex::new(&format!(r"(?m)^{}.*$", regex::escape(delimiter)))
         .unwrap()
         .split(&content)
         .collect();
@@ -157,7 +157,7 @@ fn watch_and_update_file(
     source_path: &Path,
     target_path: &Path,
     marimo_child: &mut Child,
-    cell_separator: &str,
+    cell_delimiter: &str,
 ) -> Result<(), ErrorKind> {
     info!("Watching source path: {}", source_path.display());
     let (tx, rx) = mpsc::channel();
@@ -214,7 +214,7 @@ fn watch_and_update_file(
                         "source file '{}' changed, converting...",
                         source_path.display()
                     );
-                    if let Err(e) = convert_file(source_path, target_path, cell_separator) {
+                    if let Err(e) = convert_file(source_path, target_path, cell_delimiter) {
                         error!("Error converting file");
                         kill_and_wait(marimo_child);
                         return Err(e);
@@ -244,7 +244,7 @@ fn make_parent_directory(path: &Path) -> Result<(), ErrorKind> {
 pub fn run_convert_command(input: &Path, output: &Path, config: &Config) -> Result<(), ErrorKind> {
     assert_file_exists(&input)?;
     make_parent_directory(output)?;
-    convert_file(&input, &output, &config.cell_separator)?;
+    convert_file(&input, &output, &config.cell_delimiter)?;
     Ok(())
 }
 
@@ -286,7 +286,7 @@ pub fn run_edit_command(mut args: Vec<OsString>, config: &Config) -> Result<(), 
     info!("Using {} as the cached file", cached_path.display());
 
     make_parent_directory(&cached_path)?;
-    convert_file(&input_path, &cached_path, &config.cell_separator)?;
+    convert_file(&input_path, &cached_path, &config.cell_delimiter)?;
 
     ctrlc::set_handler(|| {}).expect("Error setting Ctrl-C handler");
 
@@ -295,7 +295,7 @@ pub fn run_edit_command(mut args: Vec<OsString>, config: &Config) -> Result<(), 
         &input_path,
         &cached_path,
         &mut marimo_child,
-        &config.cell_separator,
+        &config.cell_delimiter,
     )?;
 
     marimo_child
