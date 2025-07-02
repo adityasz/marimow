@@ -73,7 +73,7 @@ impl ErrorReporter {
         let message = match error {
             ErrorKind::FileNotFound(path) => format!("file {0}'{path}'{0:#} does not exist", emph),
             ErrorKind::NotAFile(path) => format!("{0}'{path}'{0:#} is not a file", emph),
-            ErrorKind::Io(e) => format!("{0}IO error{0:#}: {e}", emph),
+            ErrorKind::Io(path, e) => format!("IO error for {0}'{path}'{0:#}: {e}", emph),
             ErrorKind::Watch(e) => format!("{0}watch error{0:#}: {e}", emph),
             ErrorKind::MarimoFailedToStart => format!("marimo failed to start"),
             ErrorKind::MarimoExited(status) => {
