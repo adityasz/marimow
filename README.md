@@ -3,6 +3,7 @@
 ![CI](https://github.com/adityasz/marimow/actions/workflows/ci.yml/badge.svg)
 
 > [!NOTE]
+>
 > Only works on Linux; signal handling on macOS is different and I don't have a
 > Mac. You can open a pull request with a fix: See
 > [`src/lib.rs:run_marimo`](https://github.com/adityasz/marimow/tree/master/src/lib.rs).
@@ -41,11 +42,6 @@ def _():
   $ marimow convert notebook.py output.py
   ```
 
-  marimo handles data dependencies automatically when the output is opened in
-  marimo (see [marimo docs](https://docs.marimo.io/guides/editor_features/watching/#using-your-own-editor)),
-  so it is not necessary to add them to function signatures or `return`
-  statements.
-
 - Edit a python file in any editor and marimoW will convert it to marimo's
   format on every write, so that it can live reload it in the browser frontend.
 
@@ -58,6 +54,17 @@ def _():
 
 > [!TIP]
 > marimo can [autorun cells](https://docs.marimo.io/guides/editor_features/watching/#watching-for-changes-to-your-notebook).
+
+
+> [!NOTE]
+>
+> marimo handles data dependencies automatically when the output is opened in
+> marimo (see [marimo docs](https://docs.marimo.io/guides/editor_features/watching/#using-your-own-editor)),
+> so it is not necessary to add them to function signatures or `return`
+> statements.
+>
+> To really hardcode them to the notebook, just open the output in marimo's web
+> UI and save it there.
 
 ## Installation
 
@@ -137,16 +144,21 @@ $ cargo install --git https://github.com/adityasz/marimow
       app.run()
   ```
 
-> [!CAUTION]
+> [!NOTE]
 >
-> Since marimoW dumbly indents everything in a cell by 4 spaces to put its
-> contents in the body of `@app.cell def _():`, multiline strings get indented
-> by four spaces. Multiline strings are anyways rarely needed in _notebooks_ and
-> [`textwrap.dedent()`](https://docs.python.org/3/library/textwrap.html) can be
-> used as a workaround.
+> marimoW indents everything in a cell by 4 spaces to put it in the body of
+> `@app.cell def _():`. This means multiline strings also get indented by four
+> spaces, but this is **not** a problem -- marimo web UI does the same. The
+> `@app.cell` decorator probably handles this as the string length remains
+> unchanged.
 >
-> [`marimo.md()`](https://docs.python.org/3/library/textwrap.html) does some
-> preprocessing and is not affected.
+> A multiline string having the delimiter in the beginning of a line will cause
+> issues, but the delimiter is configurable, so it is up to the user. Zed
+> preview 0.193.3's REPL also does not take care of this (and their delimiter
+> can't be changed), despite having a parse tree of the file (for syntax
+> highlighting).
+>
+> WONTFIX until I see a real issue requiring me to make an AST.
 
 ## Config
 
@@ -161,6 +173,7 @@ cell_delimiter = "# %%"
 ```
 
 > [!NOTE]
+>
 > Note that if the cache directory is set to
 > `${XDG_CACHE_HOME:-$HOME/.cache}/marimow`, marimo does not autorun cells.
 > (This may be a bug in marimo.) Thus, the default is `.marimow_cache` in the
