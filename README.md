@@ -5,9 +5,9 @@
 > Mac. You can open a pull request with a fix; see
 > [`src/lib.rs:run_marimo`](https://github.com/adityasz/marimow/tree/master/src/lib.rs).
 
-* Convert a python file with cells separated by `# %%` into [marimo](marimo)'s format
+- Convert a python file with cells separated by `# %%` into [marimo](marimo)'s format
 
-  ```python
+  ```console
   marimow convert notebook.py output.py
   ```
 
@@ -15,7 +15,7 @@
   marimo (see [marimo docs](https://docs.marimo.io/guides/editor_features/watching/#using-your-own-editor)),
   so it is not necessary to add them to function signatures.
 
-* Edit a python file with cells separated by `# %%` in your favourite editor
+- Edit a python file with cells separated by `# %%` in your favourite editor
   (vim) with your favourite type checker, and marimow will convert it to
   [marimo](https://github.com/marimo-team/marimo)'s format on every write, so
   that marimo can live reload it in the browser frontend.
@@ -30,7 +30,7 @@
 
 ## Format
 
-* The first cell is a setup cell:
+- The first cell is a setup cell:
 
   ```python
   import numpy as np
@@ -60,7 +60,7 @@
       app.run()
   ```
 
-* If you don't want a setup cell, keep the first cell blank:
+- If you don't want a setup cell, keep the first cell blank:
 
   ```python
   # Each `# %%` starts a new cell.
@@ -91,6 +91,13 @@
       app.run()
   ```
 
+## Installation
+
+```console
+$ git clone https://github.com/adityasz/marimow
+$ cd marimow
+$ cargo install --path .
+```
 
 ## Config file
 
