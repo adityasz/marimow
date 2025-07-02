@@ -7,9 +7,35 @@
 > Mac. You can open a pull request with a fix: See
 > [`src/lib.rs:run_marimo`](https://github.com/adityasz/marimow/tree/master/src/lib.rs).
 
-A marimo Wrapper.
+A [marimo](https://github.com/marimo-team/marimo) Wrapper.
 
-- Convert a python file with cells separated by `# %%` into [marimo](marimo)'s format
+Because
+
+```python
+# %%
+
+x = 1
+
+# %%
+
+print(x)
+```
+
+is easier to type than
+
+```python
+app.cell()
+def _():
+    x = 1
+
+
+app.cell()
+def _():
+    print(x)
+```
+
+- Convert Python scripts having cell separators (e.g., `# %%`; see
+  [config](#config)) into [marimo's format](https://docs.marimo.io/guides/editor_features/watching/#marimos-file-format):
 
   ```console
   $ marimow convert notebook.py output.py
@@ -17,17 +43,18 @@ A marimo Wrapper.
 
   marimo handles data dependencies automatically when the output is opened in
   marimo (see [marimo docs](https://docs.marimo.io/guides/editor_features/watching/#using-your-own-editor)),
-  so it is not necessary to add them to function signatures.
+  so it is not necessary to add them to function signatures or `return`
+  statements.
 
-- Edit a python file with cells separated by `# %%` in your favourite editor
-  (vim) with your favourite type checker, and marimoW will convert it to
-  [marimo](https://github.com/marimo-team/marimo)'s format on every write, so
-  that marimo can live reload it in the browser frontend.
+- Edit a python file in any editor and marimoW will convert it to marimo's
+  format on every write, so that it can live reload it in the browser frontend.
 
-  `marimow edit [OPTIONS] path/to/notebook.py` is just `marimo edit --watch
-  [OPTIONS] .marimow_cache/path/to/notebook.py`; all that marimoW does is sync
-  `.marimow_cache/path/to/notebook.py` with `path/to/notebook.py` for marimo to
-  watch.
+  ```console
+  $ marimow edit [OPTIONS] notebook.py
+  ```
+
+  This is equivalent to `marimo edit --watch [OPTIONS] .marimow_cache/notebook.py`,
+  where `.marimow_cache/notebook.py` is in marimo's format.
 
 > [!TIP]
 > marimo can [autorun cells](https://docs.marimo.io/guides/editor_features/watching/#watching-for-changes-to-your-notebook).
@@ -40,7 +67,10 @@ $ cargo install --git https://github.com/adityasz/marimow
 
 ## Format
 
-- The first cell is a setup cell:
+- The cell separator (`# %%` by default, consistent with PyCharm and vscode) can
+  be configured in the [config file](#config).
+
+- The first cell is the [setup cell](https://docs.marimo.io/guides/reusing_functions/?h=setup#1-create-a-setup-cell):
 
   ```python
   import numpy as np
@@ -77,11 +107,9 @@ $ cargo install --git https://github.com/adityasz/marimow
   #
   # Cells only containing whitespaces and comments are ignored (there are better
   # ways to add text to a marimo notebook than to add a cell with comments).
-  #
-  # In other cells, comments are preserved.
   # %%
 
-  x = np.array([1, 2, 3])
+  x = np.array([1, 2, 3])  # comments are preserved
 
   # %% everything after the cell separator is ignored
 
@@ -98,7 +126,7 @@ $ cargo install --git https://github.com/adityasz/marimow
 
   @app.cell
   def _():
-      x = np.array([1, 2, 3])
+      x = np.array([1, 2, 3])  # comments are preserved
 
 
   @app.cell
@@ -109,6 +137,17 @@ $ cargo install --git https://github.com/adityasz/marimow
   if __name__ == "__main__":
       app.run()
   ```
+
+> [!CAUTION]
+>
+> Since marimoW dumbly indents everything in a cell by 4 spaces to put its
+> contents in the body of `@app.cell def _():`, multiline strings get indented
+> by four spaces. Multiline strings are anyways rarely needed in _notebooks_ and
+> [`textwrap.dedent()`](https://docs.python.org/3/library/textwrap.html) can be
+> used as a workaround.
+>
+> [`marimo.md()`](https://docs.python.org/3/library/textwrap.html) does some
+> preprocessing and is not affected.
 
 ## Config
 
