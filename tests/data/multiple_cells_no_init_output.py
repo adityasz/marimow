@@ -12,7 +12,7 @@ def _():
 def _():
     b = 2
     c = 3 # %%
-
+    # comments are preserved
     d = 4
 
 

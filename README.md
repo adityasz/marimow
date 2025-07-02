@@ -147,18 +147,15 @@ $ cargo install --git https://github.com/adityasz/marimow
 > [!NOTE]
 >
 > marimoW indents everything in a cell by 4 spaces to put it in the body of
-> `@app.cell def _():`. This means multiline strings also get indented by four
-> spaces, but this is **not** a problem -- marimo web UI does the same. The
-> `@app.cell` decorator probably handles this as the string length remains
-> unchanged.
+> `@app.cell def _():`. This does **not** affect multiline strings: The
+> `@app.cell` decorator probably handles this correctly as the string length
+> remains unchanged.
 >
 > A multiline string having the delimiter in the beginning of a line will cause
 > issues, but the delimiter is configurable, so it is up to the user. Zed
 > preview 0.193.3's REPL also does not take care of this (and their delimiter
 > can't be changed), despite having a parse tree of the file (for syntax
 > highlighting).
->
-> WONTFIX until I see a real issue requiring me to make an AST.
 
 ## Config
 
