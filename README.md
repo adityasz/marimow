@@ -1,5 +1,7 @@
 # marimow
 
+![CI](https://github.com/adityasz/marimow/actions/workflows/ci.yml/badge.svg)
+
 > [!NOTE]
 > Only works on Linux; signal handling on macOS is different and I don't have a
 > Mac. You can open a pull request with a fix; see
@@ -27,6 +29,12 @@
 
 > [!TIP]
 > marimo can [autorun cells](https://docs.marimo.io/guides/editor_features/watching/#watching-for-changes-to-your-notebook).
+
+## Installation
+
+```console
+$ cargo install --git https://github.com/adityasz/marimow
+```
 
 ## Format
 
@@ -90,14 +98,6 @@
   if __name__ == "__main__":
       app.run()
   ```
-
-## Installation
-
-```console
-$ git clone https://github.com/adityasz/marimow
-$ cd marimow
-$ cargo install --path .
-```
 
 ## Config file
 
